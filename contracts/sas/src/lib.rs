@@ -1889,6 +1889,8 @@ impl SAS {
 #[cfg(test)]
 mod demo;
 #[cfg(test)]
+mod gas_profile_test;
+#[cfg(test)]
 mod revocation_properties;
 #[cfg(test)]
 mod test;
