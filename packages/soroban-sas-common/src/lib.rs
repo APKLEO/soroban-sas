@@ -182,6 +182,7 @@ pub struct Attestation {
     pub attester: Address,
     pub revocable: bool,
     pub data: Bytes,
+    pub valid_from: u64,
 }
 
 /// Compact internal storage representation for Attestation records (#438).
@@ -297,6 +298,7 @@ impl CompactAttestation {
             attester: self.attester.clone(),
             revocable,
             data: self.data.clone(),
+            valid_from: 0,
         }
     }
 

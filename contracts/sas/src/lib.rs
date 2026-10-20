@@ -40,6 +40,7 @@ pub const ATTESTER_KEY: Symbol = symbol_short!("ATTKEY");
 /// protection with one `instance` entry per attester (bounded growth) whose
 /// lifetime tracks contract liveness via `extend_instance_ttl`.
 pub const DELEGATION_NONCE: Symbol = symbol_short!("DELNONCE");
+pub const VALID_FROM: Symbol = symbol_short!("V_FROM");
 /// Monotonic contract version. Missing on legacy initialized deployments,
 /// which are treated as genesis version 1.
 pub const SAS_VERSION: Symbol = symbol_short!("VERSION");
@@ -148,24 +149,30 @@ fn required_upgrade_address(env: &Env, key: &Symbol) -> Result<Address, SASError
 /// storage layout ([`CompactAttestation`]) and legacy full [`Attestation`] records (#438).
 fn read_attestation(env: &Env, uid: &UID) -> Option<Attestation> {
     let compact_key = CompactAttestationKey { uid: uid.clone() };
-    if let Some(compact) = env
+    let mut attestation = if let Some(compact) = env
         .storage()
         .persistent()
         .get::<_, CompactAttestation>(&compact_key)
     {
-        return Some(compact.to_attestation(env, uid));
-    }
-
-    if let Some(val) = env.storage().persistent().get::<_, Val>(uid) {
+        Some(compact.to_attestation(env, uid))
+    } else if let Some(val) = env.storage().persistent().get::<_, Val>(uid) {
         if let Ok(compact) = CompactAttestation::try_from_val(env, &val) {
-            return Some(compact.to_attestation(env, uid));
+            Some(compact.to_attestation(env, uid))
+        } else if let Ok(legacy) = Attestation::try_from_val(env, &val) {
+            Some(legacy)
+        } else {
+            None
         }
-        if let Ok(legacy) = Attestation::try_from_val(env, &val) {
-            return Some(legacy);
-        }
+    } else {
+        None
+    }?;
+
+    let v_key = (VALID_FROM, uid.clone());
+    if let Some(valid_from) = env.storage().persistent().get(&v_key) {
+        attestation.valid_from = valid_from;
     }
 
-    None
+    Some(attestation)
 }
 
 /// Checks whether an attestation exists under either the compact or legacy key.
@@ -191,6 +198,15 @@ fn write_attestation(env: &Env, attestation: &Attestation, ttl: u32) {
             .persistent()
             .extend_ttl(&attestation.uid, ttl, ttl);
     }
+    let v_key = (VALID_FROM, attestation.uid.clone());
+    if attestation.valid_from != 0 {
+        env.storage()
+            .persistent()
+            .set(&v_key, &attestation.valid_from);
+        env.storage().persistent().extend_ttl(&v_key, ttl, ttl);
+    } else if env.storage().persistent().has(&v_key) {
+        env.storage().persistent().remove(&v_key);
+    }
 }
 
 /// Extends the storage TTL for an attestation across its storage key.
@@ -203,6 +219,10 @@ fn extend_attestation_ttl(env: &Env, uid: &UID, ttl: u32) {
     }
     if env.storage().persistent().has(uid) {
         env.storage().persistent().extend_ttl(uid, ttl, ttl);
+    }
+    let v_key = (VALID_FROM, uid.clone());
+    if env.storage().persistent().has(&v_key) {
+        env.storage().persistent().extend_ttl(&v_key, ttl, ttl);
     }
 }
 
@@ -223,6 +243,9 @@ fn verify_attestation_record(env: &Env, uid: &UID) -> bool {
     extend_attestation_ttl(env, uid, ttl);
 
     if attestation.revocation_time != 0 {
+        return false;
+    }
+    if attestation.valid_from != 0 && env.ledger().timestamp() < attestation.valid_from {
         return false;
     }
     if validate_expiration(env, attestation.expiration_time).is_err() {
@@ -681,6 +704,14 @@ impl SAS {
             panic_with_error!(&env, err);
         }
 
+        // Time-locked attestation validation (#439):
+        // Ensure valid_from must be strictly less than expiration_time when expiration is non-zero.
+        // Invalid time ranges (valid_from >= expiration_time > 0) revert with InvalidTimeRange.
+        if attestation.expiration_time > 0 && attestation.valid_from >= attestation.expiration_time
+        {
+            panic_with_error!(&env, SASError::InvalidTimeRange);
+        }
+
         // Shared with the SDK/CLI pre-flight checks so a missing
         // ("no recipient" sentinel) or self-targeted recipient is rejected
         // with the same `InvalidRecipient` wherever it is caught (#304).
@@ -710,6 +741,27 @@ impl SAS {
         let Some(schema) = schema_opt else {
             panic_with_error!(&env, SASError::InvalidSchema);
         };
+
+        // Maximum expiration window limit per schema (#441):
+        let max_ttl: u64 = match env.try_invoke_contract::<u64, soroban_sdk::Error>(
+            &registry,
+            &Symbol::new(&env, "get_max_ttl"),
+            soroban_sdk::vec![&env, attestation.schema_uid.clone().into_val(&env)],
+        ) {
+            Ok(Ok(ttl)) => ttl,
+            _ => 0,
+        };
+        if max_ttl > 0 {
+            if attestation.expiration_time == 0 {
+                panic_with_error!(&env, SASError::InvalidExpirationTime);
+            }
+            let current_time = env.ledger().timestamp();
+            if attestation.expiration_time > current_time
+                && attestation.expiration_time - current_time > max_ttl
+            {
+                panic_with_error!(&env, SASError::InvalidExpirationTime);
+            }
+        }
 
         // Verify attester authorization: attester must be either the original
         // schema owner or an authorized delegate in the registry allow-list (#7).
@@ -820,6 +872,17 @@ impl SAS {
     /// detect the gap and repair it with `reindex_attestation` (#161).
     fn notify_indexer_of_issuance(env: &Env, indexer: &Address, attestation: &Attestation) {
         if Self::push_to_indexer(env, indexer, attestation) {
+            if attestation.valid_from > 0 {
+                let _ = env.try_invoke_contract::<(), soroban_sdk::Error>(
+                    indexer,
+                    &Symbol::new(env, "set_valid_from"),
+                    soroban_sdk::vec![
+                        env,
+                        attestation.uid.clone().into_val(env),
+                        attestation.valid_from.into_val(env),
+                    ],
+                );
+            }
             return;
         }
         if env
@@ -1300,6 +1363,32 @@ impl SAS {
         // (we don't allow making a perpetual attestation expirable)
         if attestation.expiration_time == 0 && new_expiration_time != 0 {
             panic_with_error!(&env, SASError::InvalidTTL);
+        }
+
+        // Time-locked attestation validation (#439):
+        // Ensure valid_from must be strictly less than expiration_time when expiration is non-zero.
+        if new_expiration_time > 0 && attestation.valid_from >= new_expiration_time {
+            panic_with_error!(&env, SASError::InvalidTimeRange);
+        }
+
+        // Maximum expiration window limit per schema (#441):
+        let registry = require_registry(&env);
+        let max_ttl: u64 = match env.try_invoke_contract::<u64, soroban_sdk::Error>(
+            &registry,
+            &Symbol::new(&env, "get_max_ttl"),
+            soroban_sdk::vec![&env, attestation.schema_uid.clone().into_val(&env)],
+        ) {
+            Ok(Ok(ttl)) => ttl,
+            _ => 0,
+        };
+        if max_ttl > 0 {
+            if new_expiration_time == 0 {
+                panic_with_error!(&env, SASError::InvalidExpirationTime);
+            }
+            let current_time = env.ledger().timestamp();
+            if new_expiration_time > current_time && new_expiration_time - current_time > max_ttl {
+                panic_with_error!(&env, SASError::InvalidExpirationTime);
+            }
         }
 
         // Validate the new expiration time is not already in the past
@@ -1787,6 +1876,9 @@ impl SAS {
         if attestation.revocation_time != 0 {
             panic_with_error!(&env, SASError::AlreadyRevoked);
         }
+        if attestation.valid_from != 0 && env.ledger().timestamp() < attestation.valid_from {
+            return false;
+        }
         if let Err(err) = validate_expiration(&env, attestation.expiration_time) {
             panic_with_error!(&env, err);
         }
@@ -1934,7 +2026,21 @@ impl SAS {
         if attestation.revocation_time != 0 {
             return false;
         }
+        if attestation.valid_from != 0 && env.ledger().timestamp() < attestation.valid_from {
+            return false;
+        }
         validate_expiration(&env, attestation.expiration_time).is_ok()
+    }
+
+    /// Exposes the `valid_from` activation timestamp for an attestation (#439).
+    pub fn get_valid_from(env: Env, uid: UID) -> u64 {
+        extend_instance_ttl(&env);
+        let Some(attestation) = read_attestation(&env, &uid) else {
+            return 0;
+        };
+        let ttl = Self::compute_storage_ttl(&env, attestation.expiration_time);
+        env.storage().persistent().extend_ttl(&uid, ttl, ttl);
+        attestation.valid_from
     }
 
     /// Migrates a legacy `Attestation` storage entry to `CompactAttestation` format (#438).
@@ -1951,6 +2057,11 @@ impl SAS {
                 let ttl = Self::compute_storage_ttl(&env, legacy.expiration_time);
                 env.storage().persistent().set(&uid, &compact);
                 env.storage().persistent().extend_ttl(&uid, ttl, ttl);
+                if legacy.valid_from != 0 {
+                    let v_key = (VALID_FROM, uid.clone());
+                    env.storage().persistent().set(&v_key, &legacy.valid_from);
+                    env.storage().persistent().extend_ttl(&v_key, ttl, ttl);
+                }
                 return true;
             }
         }

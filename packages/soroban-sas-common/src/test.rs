@@ -407,6 +407,7 @@ fn sample_attestation(env: &Env, attester: Address) -> Attestation {
         attester,
         revocable: true,
         data: Bytes::from_slice(env, &[0xde, 0xad, 0xbe, 0xef]),
+        valid_from: 0,
     }
 }
 
@@ -744,6 +745,7 @@ fn test_compact_attestation_roundtrip() {
         attester: attester.clone(),
         revocable: true,
         data: data.clone(),
+        valid_from: 0,
     };
 
     let compact = crate::CompactAttestation::from_attestation(&env, &original);
@@ -784,6 +786,7 @@ fn test_compact_attestation_storage_footprint_reduction_exceeds_15_percent() {
         attester: attester.clone(),
         revocable: true,
         data: data.clone(),
+        valid_from: 0,
     };
 
     let compact = crate::CompactAttestation::from_attestation(&env, &original);

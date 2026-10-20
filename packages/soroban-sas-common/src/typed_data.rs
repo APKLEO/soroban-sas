@@ -47,6 +47,7 @@
 //!     attester: Address::generate(&env),
 //!     revocable: true,
 //!     data: soroban_sdk::Bytes::new(&env),
+//!     valid_from: 0,
 //! };
 //!
 //! // Reproduce the deterministic digest the issuer signed.
@@ -288,6 +289,7 @@ mod golden_vectors {
             attester: account_address(&env, &attester_key),
             revocable: true,
             data: Bytes::from_slice(&env, b"test data"),
+            valid_from: 0,
         };
 
         let domain = AttestationDomain {
@@ -335,6 +337,7 @@ mod golden_vectors {
             attester: account_address(&env, &attester_key),
             revocable: true,
             data: Bytes::from_slice(&env, b"test data"),
+            valid_from: 0,
         };
 
         let domain = AttestationDomain {
@@ -391,6 +394,7 @@ mod golden_vectors {
             attester: account_address(&env, &attester_key),
             revocable: true,
             data: Bytes::from_slice(&env, b"test data"),
+            valid_from: 0,
         };
 
         let domain_b = AttestationDomain {
@@ -446,6 +450,7 @@ mod golden_vectors {
             attester: account_address(&env, &attester_key),
             revocable: true,
             data: Bytes::from_slice(&env, b"test data"),
+            valid_from: 0,
         };
 
         let domain_nonce_42 = AttestationDomain {
@@ -505,6 +510,7 @@ mod golden_vectors {
             attester: account_address(&env, &attester_key),
             revocable: true,
             data: Bytes::from_slice(&env, b"test data"),
+            valid_from: 0,
         };
 
         let domain = AttestationDomain {
@@ -575,6 +581,7 @@ mod field_mutations {
                 attester: address(env, 5),
                 revocable: true,
                 data: Bytes::from_slice(env, b"fixed payload"),
+                valid_from: 0,
             },
             AttestationDomain {
                 network_id: BytesN::from_array(env, &[6; 32]),

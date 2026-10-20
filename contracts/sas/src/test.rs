@@ -28,6 +28,7 @@ fn attestation_fixture(
         schema_uid,
         time: 1000,
         expiration_time: 0,
+        valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(BytesN::from_array(env, &[0u8; 32])),
         recipient: recipient.clone(),
@@ -266,6 +267,7 @@ fn test_happy_path_attestation() {
         schema_uid,
         time: 1000,
         expiration_time: 0,
+        valid_from: 0,
         revocation_time: 0,
         ref_uid,
         recipient,
@@ -305,6 +307,7 @@ fn test_auth_failure_missing_signature() {
         schema_uid,
         time: 1000,
         expiration_time: 0,
+            valid_from: 0,
         revocation_time: 0,
         ref_uid,
         recipient,
@@ -342,6 +345,7 @@ fn test_schema_validation_rejection() {
         schema_uid,
         time: 1000,
         expiration_time: 0,
+            valid_from: 0,
         revocation_time: 0,
         ref_uid,
         recipient,
@@ -379,6 +383,7 @@ fn test_revocation_success() {
         schema_uid,
         time: 1000,
         expiration_time: 0,
+        valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient,
@@ -432,6 +437,7 @@ mod replace {
             schema_uid,
             time: 1000,
             expiration_time: 0,
+            valid_from: 0,
             revocation_time: 0,
             ref_uid: UID(BytesN::from_array(&env, &[0u8; 32])),
             recipient: recipient.clone(),
@@ -479,6 +485,7 @@ mod replace {
                 schema_uid,
                 time: 2000,
                 expiration_time: 0,
+                valid_from: 0,
                 revocation_time: 0,
                 // Deliberately wrong: replace_attestation must overwrite this
                 // with old_uid regardless of what's passed in.
@@ -611,6 +618,7 @@ mod renew {
             schema_uid,
             time: 1000,
             expiration_time: initial_expiration,
+            valid_from: 0,
             revocation_time: 0,
             ref_uid: UID(BytesN::from_array(&env, &[0u8; 32])),
             recipient: recipient.clone(),
@@ -702,6 +710,7 @@ fn test_renew_attestation_rejects_non_revocable() {
         schema_uid,
         time: 1000,
         expiration_time: 10000,
+        valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(BytesN::from_array(&env, &[0u8; 32])),
         recipient: recipient.clone(),
@@ -766,6 +775,7 @@ fn test_revocation_failure() {
         schema_uid: UID(soroban_sdk::BytesN::from_array(&env, &[2u8; 32])),
         time: 1000,
         expiration_time: 0,
+            valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient,
@@ -811,6 +821,7 @@ fn test_multi_attest_returns_both_uids() {
         schema_uid: schema_uid.clone(),
         time: 1000,
         expiration_time: 0,
+        valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient: recipient.clone(),
@@ -824,6 +835,7 @@ fn test_multi_attest_returns_both_uids() {
         schema_uid,
         time: 1000,
         expiration_time: 0,
+        valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient,
@@ -865,6 +877,7 @@ fn test_batch_operations() {
         schema_uid: UID(soroban_sdk::BytesN::from_array(&env, &[2u8; 32])),
         time: 1000,
         expiration_time: 0,
+            valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient: recipient.clone(),
@@ -878,6 +891,7 @@ fn test_batch_operations() {
         schema_uid: UID(soroban_sdk::BytesN::from_array(&env, &[2u8; 32])),
         time: 1000,
         expiration_time: 0,
+            valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient,
@@ -941,6 +955,7 @@ fn test_resolver_callback() {
         schema_uid,
         time: 1000,
         expiration_time: 0,
+        valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient,
@@ -1528,7 +1543,8 @@ fn test_attestation_expiration() {
         uid: uid.clone(),
         schema_uid: UID(soroban_sdk::BytesN::from_array(&env, &[2u8; 32])),
         time: 1000,
-        expiration_time: 100, // Expired if ledger is > 100
+        expiration_time: 100,
+            valid_from: 0, // Expired if ledger is > 100
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient,
@@ -1566,6 +1582,7 @@ fn test_attest_by_delegation() {
         schema_uid: UID(soroban_sdk::BytesN::from_array(&env, &[2u8; 32])),
         time: 1000,
         expiration_time: 0,
+            valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient,
@@ -1624,6 +1641,7 @@ mod offchain {
             schema_uid,
             time: 1000,
             expiration_time: 0,
+            valid_from: 0,
             revocation_time: 0,
             ref_uid: UID(BytesN::from_array(&env, &[0u8; 32])),
             recipient,
@@ -2231,6 +2249,7 @@ fn test_comprehensive_lifecycle() {
         schema_uid,
         time: 1000,
         expiration_time: 0,
+        valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient,
@@ -2277,6 +2296,7 @@ fn test_attest_emits_attestation_issued_event() {
         schema_uid: schema_uid.clone(),
         time: 1000,
         expiration_time: 0,
+        valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient: recipient.clone(),
@@ -2329,6 +2349,7 @@ fn test_revoke_emits_attestation_revoked_event() {
         schema_uid,
         time: 1000,
         expiration_time: 0,
+        valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient,
@@ -2983,6 +3004,7 @@ fn test_delegated_attest_normalizes_time_to_ledger_timestamp() {
         schema_uid,
         time: 1, // caller-provided, must be overwritten
         expiration_time: 0,
+        valid_from: 0,
         revocation_time: 0,
         ref_uid: UID(soroban_sdk::BytesN::from_array(&env, &[0u8; 32])),
         recipient,
@@ -3868,6 +3890,7 @@ mod snapshot_tests {
 
 mod view_functions {
     use super::*;
+    use schema_registry::{SchemaRegistry, SchemaRegistryClient};
 
     fn setup() -> (Env, Address, Address, Address) {
         let env = Env::default();
@@ -3875,6 +3898,17 @@ mod view_functions {
         let sas_id = env.register_contract(None, SAS);
         let admin = Address::generate(&env);
         env.mock_all_auths();
+        SASClient::new(&env, &sas_id).init(&admin, &registry_id);
+        (env, sas_id, admin, registry_id)
+    }
+
+    fn setup_with_real_registry() -> (Env, Address, Address, Address) {
+        let env = Env::default();
+        let registry_id = env.register_contract(None, SchemaRegistry);
+        let sas_id = env.register_contract(None, SAS);
+        let admin = Address::generate(&env);
+        env.mock_all_auths();
+        SchemaRegistryClient::new(&env, &registry_id).init(&admin);
         SASClient::new(&env, &sas_id).init(&admin, &registry_id);
         (env, sas_id, admin, registry_id)
     }
@@ -3920,6 +3954,222 @@ mod view_functions {
     }
 
     #[test]
+    fn test_timelocked_attestation_pre_active_and_post_expiration() {
+        let (env, sas_id, _admin, _registry) = setup();
+        let client = SASClient::new(&env, &sas_id);
+
+        let attester = Address::generate(&env);
+        let recipient = Address::generate(&env);
+
+        env.ledger().with_mut(|li| li.timestamp = 100);
+
+        let mut attestation = attestation_fixture(&env, &attester, &recipient, [210u8; 32]);
+        attestation.valid_from = 200;
+        attestation.expiration_time = 500;
+
+        let uid = client.attest(&attestation);
+
+        // Pre-activation state (timestamp = 100 < valid_from = 200)
+        assert!(!client.verify_attestation(&uid));
+        assert!(!client.verify_attestation_view(&uid));
+        assert_eq!(client.get_valid_from(&uid), 200);
+
+        // At boundary before activation
+        env.ledger().with_mut(|li| li.timestamp = 199);
+        assert!(!client.verify_attestation(&uid));
+        assert!(!client.verify_attestation_view(&uid));
+
+        // Active state at exact valid_from activation
+        env.ledger().with_mut(|li| li.timestamp = 200);
+        assert!(client.verify_attestation(&uid));
+        assert!(client.verify_attestation_view(&uid));
+
+        // Active state mid-lifecycle
+        env.ledger().with_mut(|li| li.timestamp = 350);
+        assert!(client.verify_attestation(&uid));
+        assert!(client.verify_attestation_view(&uid));
+
+        // Active state at boundary before expiration
+        env.ledger().with_mut(|li| li.timestamp = 499);
+        assert!(client.verify_attestation(&uid));
+
+        // Post-expiration state (timestamp = 500 >= expiration_time)
+        env.ledger().with_mut(|li| li.timestamp = 500);
+        assert!(!client.verify_attestation(&uid));
+        assert!(!client.verify_attestation_view(&uid));
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Contract, #418)")]
+    fn test_timelocked_attestation_rejects_valid_from_greater_than_expiration() {
+        let (env, sas_id, _admin, _registry) = setup();
+        let client = SASClient::new(&env, &sas_id);
+
+        let attester = Address::generate(&env);
+        let recipient = Address::generate(&env);
+
+        env.ledger().with_mut(|li| li.timestamp = 100);
+
+        let mut attestation = attestation_fixture(&env, &attester, &recipient, [211u8; 32]);
+        attestation.valid_from = 600;
+        attestation.expiration_time = 500; // valid_from > expiration_time > 0
+
+        client.attest(&attestation);
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Contract, #418)")]
+    fn test_timelocked_attestation_rejects_valid_from_equal_to_expiration() {
+        let (env, sas_id, _admin, _registry) = setup();
+        let client = SASClient::new(&env, &sas_id);
+
+        let attester = Address::generate(&env);
+        let recipient = Address::generate(&env);
+
+        env.ledger().with_mut(|li| li.timestamp = 100);
+
+        let mut attestation = attestation_fixture(&env, &attester, &recipient, [212u8; 32]);
+        attestation.valid_from = 500;
+        attestation.expiration_time = 500; // valid_from == expiration_time > 0
+
+        client.attest(&attestation);
+    }
+
+    #[test]
+    fn test_timelocked_perpetual_attestation_succeeds() {
+        let (env, sas_id, _admin, _registry) = setup();
+        let client = SASClient::new(&env, &sas_id);
+
+        let attester = Address::generate(&env);
+        let recipient = Address::generate(&env);
+
+        env.ledger().with_mut(|li| li.timestamp = 100);
+
+        let mut attestation = attestation_fixture(&env, &attester, &recipient, [213u8; 32]);
+        attestation.valid_from = 250;
+        attestation.expiration_time = 0; // perpetual
+
+        let uid = client.attest(&attestation);
+
+        // Pre-activation
+        assert!(!client.verify_attestation(&uid));
+
+        // Activated
+        env.ledger().with_mut(|li| li.timestamp = 300);
+        assert!(client.verify_attestation(&uid));
+
+        // Far future still active
+        env.ledger().with_mut(|li| li.timestamp = 1_000_000);
+        assert!(client.verify_attestation(&uid));
+    }
+
+    #[test]
+    fn test_schema_max_ttl_enforcement() {
+        let (env, sas_id, _admin, registry_id) = setup_with_real_registry();
+        let client = SASClient::new(&env, &sas_id);
+        let reg_client = SchemaRegistryClient::new(&env, &registry_id);
+
+        let attester = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        let resolver = env.register_contract(None, mock3::MockResolver);
+
+        // Register a schema with max_ttl = 300 seconds
+        let schema_str = soroban_sdk::String::from_str(&env, "bool kyc_verified");
+        let schema_uid =
+            reg_client.register_with_max_ttl(&attester, &schema_str, &resolver, &true, &300u64);
+
+        env.ledger().with_mut(|li| li.timestamp = 1000);
+
+        // 1. Valid expiration within max_ttl (timestamp 1000 + 200 = 1200 <= 1300)
+        let mut valid_att = attestation_fixture(&env, &attester, &recipient, [214u8; 32]);
+        valid_att.schema_uid = schema_uid.clone();
+        recompute_uid(&env, &mut valid_att);
+        valid_att.expiration_time = 1200;
+        let uid1 = client.attest(&valid_att);
+        assert!(client.verify_attestation(&uid1));
+
+        // 2. Exact boundary expiration (timestamp 1000 + 300 = 1300)
+        let mut boundary_att = attestation_fixture(&env, &attester, &recipient, [215u8; 32]);
+        boundary_att.schema_uid = schema_uid.clone();
+        recompute_uid(&env, &mut boundary_att);
+        boundary_att.expiration_time = 1300;
+        let uid2 = client.attest(&boundary_att);
+        assert!(client.verify_attestation(&uid2));
+
+        // 3. Schema with max_ttl == 0 allows perpetual and long expiration
+        let unconstrained_schema_uid = reg_client.register_with_max_ttl(
+            &attester,
+            &soroban_sdk::String::from_str(&env, "string title"),
+            &resolver,
+            &true,
+            &0u64,
+        );
+        let mut unconstrained_att = attestation_fixture(&env, &attester, &recipient, [216u8; 32]);
+        unconstrained_att.schema_uid = unconstrained_schema_uid.clone();
+        recompute_uid(&env, &mut unconstrained_att);
+        unconstrained_att.expiration_time = 0; // Perpetual
+        let uid3 = client.attest(&unconstrained_att);
+        assert!(client.verify_attestation(&uid3));
+
+        let mut long_att = attestation_fixture(&env, &attester, &recipient, [217u8; 32]);
+        long_att.schema_uid = unconstrained_schema_uid;
+        recompute_uid(&env, &mut long_att);
+        long_att.expiration_time = 1000 + 100_000;
+        let uid4 = client.attest(&long_att);
+        assert!(client.verify_attestation(&uid4));
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Contract, #419)")]
+    fn test_schema_max_ttl_rejects_exceeded_expiration() {
+        let (env, sas_id, _admin, registry_id) = setup_with_real_registry();
+        let client = SASClient::new(&env, &sas_id);
+        let reg_client = SchemaRegistryClient::new(&env, &registry_id);
+
+        let attester = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        let resolver = Address::generate(&env);
+
+        let schema_str = soroban_sdk::String::from_str(&env, "bool session_token");
+        let schema_uid =
+            reg_client.register_with_max_ttl(&attester, &schema_str, &resolver, &true, &300u64);
+
+        env.ledger().with_mut(|li| li.timestamp = 1000);
+
+        // Expiration 1301 > 1000 + 300
+        let mut att = attestation_fixture(&env, &attester, &recipient, [218u8; 32]);
+        att.schema_uid = schema_uid;
+        recompute_uid(&env, &mut att);
+        att.expiration_time = 1301;
+        client.attest(&att);
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Contract, #419)")]
+    fn test_schema_max_ttl_rejects_perpetual_attestation() {
+        let (env, sas_id, _admin, registry_id) = setup_with_real_registry();
+        let client = SASClient::new(&env, &sas_id);
+        let reg_client = SchemaRegistryClient::new(&env, &registry_id);
+
+        let attester = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        let resolver = Address::generate(&env);
+
+        let schema_str = soroban_sdk::String::from_str(&env, "bool capped_credential");
+        let schema_uid =
+            reg_client.register_with_max_ttl(&attester, &schema_str, &resolver, &true, &600u64);
+
+        env.ledger().with_mut(|li| li.timestamp = 1000);
+
+        // Perpetual attestation (expiration_time == 0) on capped schema
+        let mut att = attestation_fixture(&env, &attester, &recipient, [219u8; 32]);
+        att.schema_uid = schema_uid;
+        recompute_uid(&env, &mut att);
+        att.expiration_time = 0;
+        client.attest(&att);
+    }
+
+    #[test]
     fn test_revocation_policy_compliance_paths() {
         use crate::test::mock_policy_registry;
         use soroban_sas_common::RevocationPolicy;
@@ -3937,7 +4187,6 @@ mod view_functions {
 
         let attester = Address::generate(&env);
         let recipient = Address::generate(&env);
-
         // 1. IrrevocableOnly schema
         let uid_irrev = UID(BytesN::from_array(&env, &[1u8; 32]));
         policy_client.set_policy(&uid_irrev, &RevocationPolicy::IrrevocableOnly);
